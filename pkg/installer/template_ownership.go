@@ -1272,7 +1272,7 @@ func isLowerHex(value string, length int) bool {
 	}
 
 	for _, character := range value {
-		if !('0' <= character && character <= '9') && !('a' <= character && character <= 'f') {
+		if (character < '0' || character > '9') && (character < 'a' || character > 'f') {
 			return false
 		}
 	}
