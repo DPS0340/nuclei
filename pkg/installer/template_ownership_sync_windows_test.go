@@ -36,20 +36,29 @@ func TestSyncTemplateOwnershipFileRestoresModeAfterOpenFailure(t *testing.T) {
 
 func TestRenameTemplateRestoreNoReplaceUsesOpenedRoot(t *testing.T) {
 	parent := t.TempDir()
-	rootPath := filepath.Join(parent, "templates")
-	require.NoError(t, os.Mkdir(rootPath, 0o755))
-	root, err := os.OpenRoot(rootPath)
+	openedParent := filepath.Join(parent, "opened")
+	currentParent := filepath.Join(parent, "current")
+	rootPath := filepath.Join(openedParent, "templates")
+	currentRootPath := filepath.Join(currentParent, "templates")
+	require.NoError(t, os.MkdirAll(filepath.Join(rootPath, "source"), 0o755))
+	require.NoError(t, os.Mkdir(filepath.Join(rootPath, "destination"), 0o755))
+	require.NoError(t, os.MkdirAll(filepath.Join(currentRootPath, "source"), 0o755))
+	require.NoError(t, os.Mkdir(filepath.Join(currentRootPath, "destination"), 0o755))
+	require.NoError(t, os.WriteFile(filepath.Join(currentRootPath, "source", "temporary.yaml"), []byte("wrong root"), 0o600))
+
+	t.Chdir(openedParent)
+	root, err := os.OpenRoot("templates")
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, root.Close()) })
+	require.NoError(t, root.WriteFile(filepath.Join("source", "temporary.yaml"), []byte("restored"), 0o600))
 
-	movedPath := filepath.Join(parent, "moved-templates")
-	require.NoError(t, os.Rename(rootPath, movedPath))
-	require.NoError(t, os.Mkdir(rootPath, 0o755))
-	require.NoError(t, root.WriteFile("temporary.yaml", []byte("restored"), 0o600))
+	t.Chdir(currentParent)
+	require.NoError(t, renameTemplateRestoreNoReplace(root, filepath.Join("source", "temporary.yaml"), filepath.Join("destination", "retired.yaml")))
+	require.FileExists(t, filepath.Join(rootPath, "destination", "retired.yaml"))
+	require.NoFileExists(t, filepath.Join(currentRootPath, "destination", "retired.yaml"))
 
-	require.NoError(t, renameTemplateRestoreNoReplace(root, "temporary.yaml", "retired.yaml"))
-	require.FileExists(t, filepath.Join(movedPath, "retired.yaml"))
-	require.NoFileExists(t, filepath.Join(rootPath, "retired.yaml"))
+	require.NoError(t, os.Rename(filepath.Join(rootPath, "source"), filepath.Join(rootPath, "moved-source")))
+	require.NoError(t, os.Rename(filepath.Join(rootPath, "destination"), filepath.Join(rootPath, "moved-destination")))
 }
 
 func TestSyncTemplateOwnershipFile(t *testing.T) {
