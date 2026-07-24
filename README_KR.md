@@ -301,6 +301,7 @@ OPTIMIZATIONS:
    -ss, -scan-strategy value        strategy to use while scanning(auto/host-spray/template-spray) (default auto)
    -irt, -input-read-timeout value  timeout on input read (default 3m0s)
    -nh, -no-httpx                   disable httpx probing for non-url input
+   -stp, -strict-probe              skip HTTP/headless for non-url inputs that httpx could not confirm (no raw-input fallback)
    -no-stdin                        disable stdin processing
 
 HEADLESS:
